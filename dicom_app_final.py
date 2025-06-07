@@ -6,18 +6,22 @@ from skimage import measure
 from stl import mesh
 import tempfile
 import os
-import sys
 
-# Detectar si estamos en Streamlit Cloud
-on_streamlit_cloud = os.environ.get("STREAMLIT_SERVER") == "1"
-if not on_streamlit_cloud:
+# Detectar si estamos en Streamlit Cloud (sólo se habilita PyVista si estamos en local)
+try:
+    import streamlit.runtime.scriptrunner.script_run_context as sctx
+    is_cloud = sctx.get_script_run_ctx() is None
+except Exception:
+    is_cloud = False
+
+if not is_cloud:
     import pyvista as pv
     from pyvista import Plotter
 
 # Configuración general
 st.set_page_config(page_title="DICOM Segmentator", page_icon="🧠", layout="wide")
 
-# Tema visual oscuro clínico con mejoras de contraste para textos
+# Estilo visual clínico oscuro
 st.markdown("""
 <style>
 body {
@@ -58,10 +62,10 @@ if "dicom_data" not in st.session_state:
     st.session_state.slice_index = 0
 
 # Menú
-menu = st.sidebar.radio("\U0001F4C1 Menú:", ["\U0001F4C4 Subir DICOM", "🌞 Visualizar imagen", "✂️ Segmentar imagen", "📈 Reconstrucción", "📆 Exportar STL"])
+menu = st.sidebar.radio("📁 Menú:", ["📄 Subir DICOM", "🌞 Visualizar imagen", "✂️ Segmentar imagen", "📈 Reconstrucción", "📆 Exportar STL"])
 
 # Subir archivo
-if menu == "\U0001F4C4 Subir DICOM":
+if menu == "📄 Subir DICOM":
     uploaded_file = st.file_uploader("Archivo DICOM", type=["dcm"])
     if uploaded_file:
         dicom_data = pydicom.dcmread(uploaded_file)
@@ -80,8 +84,7 @@ elif menu == "🌞 Visualizar imagen":
         brightness = st.sidebar.slider("Brillo", -100, 100, 0)
         contrast = st.sidebar.slider("Contraste", 0.5, 3.0, 1.0)
 
-        adjusted = img.copy()
-        adjusted = adjusted * contrast + brightness
+        adjusted = img * contrast + brightness
         adjusted = np.clip(adjusted, 0, 255)
 
         if img.ndim == 3 and img.shape[0] > 1:
@@ -121,7 +124,7 @@ elif menu == "✂️ Segmentar imagen":
         col2.image(segmented.astype(np.uint8) * 255, clamp=True, caption=f"Segmentado: {estructura}", use_container_width=True)
         st.success("✅ Segmentación realizada completa.")
     else:
-        st.warning("⚠️ Sube un archivo DICOM primero.")
+        st.warning("⚠️ Primero sube un archivo DICOM.")
 
 # Reconstrucción MPR y 3D
 elif menu == "📈 Reconstrucción":
@@ -130,7 +133,7 @@ elif menu == "📈 Reconstrucción":
         st.warning("⚠️ Sube un archivo DICOM primero.")
     elif img.ndim < 3 or img.shape[0] == 1:
         st.warning("⚠️ Imagen 2D detectada. Se necesita un volumen 3D.")
-    elif on_streamlit_cloud:
+    elif is_cloud:
         st.info("⚠️ Reconstrucción 3D desactivada en Streamlit Cloud por limitaciones de entorno.")
     else:
         st.subheader("Planos Anatómicos")
