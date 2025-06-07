@@ -80,7 +80,6 @@ elif menu == "🌞 Visualizar imagen":
         brightness = st.sidebar.slider("Brillo", -100, 100, 0)
         contrast = st.sidebar.slider("Contraste", 0.5, 3.0, 1.0)
 
-        # Ajustes de brillo y contraste
         adjusted = img.copy()
         adjusted = adjusted * contrast + brightness
         adjusted = np.clip(adjusted, 0, 255)
@@ -168,4 +167,4 @@ elif menu == "📆 Exportar STL":
                 st.download_button("📅 Descargar STL", file, file_name="segmentacion.stl")
         st.success("✅ STL exportado.")
     else:
-        st.warning("⚠️ Primero segmenta una imagen.") 
+        st.warning("⚠️ Primero segmenta una imagen.")
