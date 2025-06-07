@@ -50,11 +50,11 @@ if "dicom_data" not in st.session_state:
     st.session_state.segmented = None
     st.session_state.slice_index = 0
 
-# Menú (eliminado "Reconstrucción")
-menu = st.sidebar.radio("📁 Menú:", ["📄 Subir DICOM", "🌞 Visualizar imagen", "✂️ Segmentar imagen", "📆 Exportar STL"])
+# Menú
+menu = st.sidebar.radio("\U0001F4C1 Menú:", ["\U0001F4C4 Subir DICOM", "🌞 Visualizar imagen", "✂️ Segmentar imagen", "📆 Exportar STL"])
 
 # Subir archivo
-if menu == "📄 Subir DICOM":
+if menu == "\U0001F4C4 Subir DICOM":
     uploaded_file = st.file_uploader("Archivo DICOM", type=["dcm"])
     if uploaded_file:
         dicom_data = pydicom.dcmread(uploaded_file)
@@ -73,6 +73,7 @@ elif menu == "🌞 Visualizar imagen":
         brightness = st.sidebar.slider("Brillo", -100, 100, 0)
         contrast = st.sidebar.slider("Contraste", 0.5, 3.0, 1.0)
 
+        # Ajustes de brillo y contraste
         adjusted = img.copy()
         adjusted = adjusted * contrast + brightness
         adjusted = np.clip(adjusted, 0, 255)
@@ -134,3 +135,4 @@ elif menu == "📆 Exportar STL":
         st.success("✅ STL exportado.")
     else:
         st.warning("⚠️ Primero segmenta una imagen.")
+
