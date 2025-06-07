@@ -6,18 +6,11 @@ from skimage import measure
 from stl import mesh
 import tempfile
 import os
-import sys
-
-# Detectar si estamos en Streamlit Cloud
-on_streamlit_cloud = os.environ.get("STREAMLIT_SERVER") == "1"
-if not on_streamlit_cloud:
-    import pyvista as pv
-    from pyvista import Plotter
 
 # Configuración general
 st.set_page_config(page_title="DICOM Segmentator", page_icon="🧠", layout="wide")
 
-# Tema visual oscuro clínico
+# Tema visual oscuro clínico con mejoras de contraste para textos
 st.markdown("""
 <style>
 body {
@@ -33,6 +26,9 @@ h1, h2, h3, h4, h5, h6, p, label, .stRadio, .stSlider, .stSelectbox, .stButton, 
     border-radius: 5px;
     padding: 5px;
 }
+.css-1cpxqw2 {
+    background-color: #1e293b;
+}
 .stButton>button, .stDownloadButton>button {
     background-color: #334155;
     color: white;
@@ -47,15 +43,15 @@ st.sidebar.markdown("### por el equipo de EcoVision")
 st.title(":brain: SEGMENTADOR DICOM")
 st.markdown("Una plataforma visual para segmentar, analizar y exportar imágenes médicas DICOM con estilo profesional.")
 
-# Estado inicial
+# Estado
 if "dicom_data" not in st.session_state:
     st.session_state.dicom_data = None
     st.session_state.image = None
     st.session_state.segmented = None
     st.session_state.slice_index = 0
 
-# Menú lateral
-menu = st.sidebar.radio("📁 Menú:", ["📄 Subir DICOM", "🌞 Visualizar imagen", "✂️ Segmentar imagen", "📈 Reconstrucción", "📆 Exportar STL"])
+# Menú (eliminado "Reconstrucción")
+menu = st.sidebar.radio("📁 Menú:", ["📄 Subir DICOM", "🌞 Visualizar imagen", "✂️ Segmentar imagen", "📆 Exportar STL"])
 
 # Subir archivo
 if menu == "📄 Subir DICOM":
@@ -119,33 +115,6 @@ elif menu == "✂️ Segmentar imagen":
         st.success("✅ Segmentación realizada completa.")
     else:
         st.warning("⚠️ Sube un archivo DICOM primero.")
-
-# Reconstrucción
-elif menu == "📈 Reconstrucción":
-    img = st.session_state.image
-    if img is None:
-        st.warning("⚠️ Sube un archivo DICOM primero.")
-    elif img.ndim < 3 or img.shape[0] == 1:
-        st.warning("⚠️ Imagen 2D detectada. Se necesita un volumen 3D.")
-    elif on_streamlit_cloud:
-        st.info("⚠️ Reconstrucción 3D desactivada en Streamlit Cloud por limitaciones.")
-    else:
-        st.subheader("Planos Anatómicos")
-        st.image(img[img.shape[0]//2, :, :], caption="Plano Axial", clamp=True, use_container_width=True)
-        st.image(img[:, img.shape[1]//2, :], caption="Plano Coronal", clamp=True, use_container_width=True)
-        st.image(img[:, :, img.shape[2]//2], caption="Plano Sagital", clamp=True, use_container_width=True)
-
-        st.subheader("Reconstrucción 3D Interactiva")
-        vol = (img > np.mean(img)).astype(np.uint8)
-        verts, faces, _, _ = measure.marching_cubes(vol, level=0)
-        surf = pv.PolyData(verts, np.hstack([[3] + list(face) for face in faces]))
-        plotter = pv.Plotter(off_screen=True)
-        plotter.add_mesh(surf, color="lightblue")
-        plotter.set_background("white")
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-            plotter.show(screenshot=tmp.name)
-            st.image(tmp.name, caption="Reconstrucción 3D", use_container_width=True)
 
 # Exportar STL
 elif menu == "📆 Exportar STL":
