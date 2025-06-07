@@ -6,8 +6,13 @@ from skimage import measure
 from stl import mesh
 import tempfile
 import os
-import pyvista as pv
-from pyvista import Plotter
+import sys
+
+# Detectar si estamos en Streamlit Cloud
+on_streamlit_cloud = os.environ.get("STREAMLIT_SERVER") == "1"
+if not on_streamlit_cloud:
+    import pyvista as pv
+    from pyvista import Plotter
 
 # Configuración general
 st.set_page_config(page_title="DICOM Segmentator", page_icon="🧠", layout="wide")
@@ -115,7 +120,7 @@ elif menu == "✂️ Segmentar imagen":
         col1, col2 = st.columns(2)
         col1.image(slice_img, clamp=True, caption="Original", use_container_width=True)
         col2.image(segmented.astype(np.uint8) * 255, clamp=True, caption=f"Segmentado: {estructura}", use_container_width=True)
-        st.success("✅ Segmentación completada.")
+        st.success("✅ Segmentación realizada completa.")
     else:
         st.warning("⚠️ Sube un archivo DICOM primero.")
 
@@ -126,6 +131,8 @@ elif menu == "📈 Reconstrucción":
         st.warning("⚠️ Sube un archivo DICOM primero.")
     elif img.ndim < 3 or img.shape[0] == 1:
         st.warning("⚠️ Imagen 2D detectada. Se necesita un volumen 3D.")
+    elif on_streamlit_cloud:
+        st.info("⚠️ Reconstrucción 3D desactivada en Streamlit Cloud por limitaciones de entorno.")
     else:
         st.subheader("Planos Anatómicos")
         st.image(img[img.shape[0]//2, :, :], caption="Plano Axial", clamp=True, use_container_width=True)
@@ -161,5 +168,4 @@ elif menu == "📆 Exportar STL":
                 st.download_button("📅 Descargar STL", file, file_name="segmentacion.stl")
         st.success("✅ STL exportado.")
     else:
-        st.warning("⚠️ Primero segmenta una imagen.")
-
+        st.warning("⚠️ Primero segmenta una imagen.") 
