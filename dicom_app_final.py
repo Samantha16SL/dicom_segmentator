@@ -10,7 +10,7 @@ import os
 # Configuración general
 st.set_page_config(page_title="DICOM Segmentator", page_icon="🧠", layout="wide")
 
-# Tema visual oscuro clínico con mejoras de contraste para textos
+# Tema visual
 st.markdown("""
 <style>
 body {
@@ -51,10 +51,10 @@ if "dicom_data" not in st.session_state:
     st.session_state.slice_index = 0
 
 # Menú
-menu = st.sidebar.radio("\U0001F4C1 Menú:", ["\U0001F4C4 Subir DICOM", "🌞 Visualizar imagen", "✂️ Segmentar imagen", "📆 Exportar STL"])
+menu = st.sidebar.radio("📁 Menú:", ["📄 Subir DICOM", "🌞 Visualizar imagen", "✂️ Segmentar imagen", "📆 Exportar STL"])
 
 # Subir archivo
-if menu == "\U0001F4C4 Subir DICOM":
+if menu == "📄 Subir DICOM":
     uploaded_file = st.file_uploader("Archivo DICOM", type=["dcm"])
     if uploaded_file:
         dicom_data = pydicom.dcmread(uploaded_file)
@@ -73,7 +73,6 @@ elif menu == "🌞 Visualizar imagen":
         brightness = st.sidebar.slider("Brillo", -100, 100, 0)
         contrast = st.sidebar.slider("Contraste", 0.5, 3.0, 1.0)
 
-        # Ajustes de brillo y contraste
         adjusted = img.copy()
         adjusted = adjusted * contrast + brightness
         adjusted = np.clip(adjusted, 0, 255)
@@ -121,6 +120,22 @@ elif menu == "✂️ Segmentar imagen":
 elif menu == "📆 Exportar STL":
     if st.session_state.segmented is not None:
         st.subheader("Exportar Segmentación")
+
+        st.sidebar.subheader("Selecciona el material de impresión 3D")
+        material = st.sidebar.selectbox("Material:", [
+            "PLA - Fácil, barato, biodegradable 🧠 📘",
+            "ABS - Resistente y duradero 🔧🦴",
+            "PETG - Transparente, fuerte, estable 🩻🧬",
+            "Resina estándar - Alta precisión 🦷✏️",
+            "Resina biocompatible - Aprobada médicamente 💧🔷",
+            "Nylon - Flexible y resistente 🦴💪",
+            "TPU - Elástico y blando ❤️🧪",
+            "PVA - Soluble en agua 💧🧽",
+            "PEEK - Alta resistencia y biocompatible 🧱🔒"
+        ])
+
+        st.markdown(f"**🔍 Material seleccionado:** {material}")
+
         vol = np.stack([st.session_state.segmented]*5, axis=0)
         verts, faces, _, _ = measure.marching_cubes(vol, level=0)
         malla = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
@@ -135,4 +150,3 @@ elif menu == "📆 Exportar STL":
         st.success("✅ STL exportado.")
     else:
         st.warning("⚠️ Primero segmenta una imagen.")
-
