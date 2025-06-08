@@ -26,9 +26,6 @@ h1, h2, h3, h4, h5, h6, p, label, .stRadio, .stSlider, .stSelectbox, .stButton, 
     border-radius: 5px;
     padding: 5px;
 }
-.css-1cpxqw2 {
-    background-color: #1e293b;
-}
 .stButton>button, .stDownloadButton>button {
     background-color: #334155;
     color: white;
@@ -43,7 +40,7 @@ st.sidebar.markdown("### por el equipo de EcoVision")
 st.title(":brain: SEGMENTADOR DICOM")
 st.markdown("Una plataforma visual para segmentar, analizar y exportar imágenes médicas DICOM con estilo profesional.")
 
-# Estado
+# Estado inicial
 if "dicom_data" not in st.session_state:
     st.session_state.dicom_data = None
     st.session_state.image = None
@@ -72,17 +69,13 @@ elif menu == "🌞 Visualizar imagen":
         st.sidebar.subheader("Controles")
         brightness = st.sidebar.slider("Brillo", -100, 100, 0)
         contrast = st.sidebar.slider("Contraste", 0.5, 3.0, 1.0)
-
-        adjusted = img.copy()
-        adjusted = adjusted * contrast + brightness
+        adjusted = img.copy() * contrast + brightness
         adjusted = np.clip(adjusted, 0, 255)
-
         if img.ndim == 3 and img.shape[0] > 1:
             st.session_state.slice_index = st.sidebar.slider("Slice:", 0, img.shape[0] - 1, st.session_state.slice_index)
             slice_img = adjusted[st.session_state.slice_index, :, :]
         else:
             slice_img = adjusted
-
         fig, ax = plt.subplots()
         ax.imshow(slice_img, cmap="gray")
         ax.axis("off")
@@ -97,18 +90,15 @@ elif menu == "✂️ Segmentar imagen":
         st.sidebar.subheader("Controles de Segmentación")
         estructura = st.sidebar.selectbox("Estructura:", ["Hueso", "Tejido blando", "Tumor"])
         threshold_factor = st.sidebar.slider("Umbral:", 0.0, 2.0, 1.0, 0.01)
-
         if estructura == "Hueso":
             threshold = np.mean(image) * threshold_factor
         elif estructura == "Tejido blando":
             threshold = np.mean(image) * (threshold_factor * 0.6)
         else:
             threshold = np.mean(image) * (threshold_factor * 1.2)
-
         slice_img = image[st.session_state.slice_index] if image.ndim == 3 else image
         segmented = slice_img > threshold
         st.session_state.segmented = segmented
-
         col1, col2 = st.columns(2)
         col1.image(slice_img, clamp=True, caption="Original", use_container_width=True)
         col2.image(segmented.astype(np.uint8) * 255, clamp=True, caption=f"Segmentado: {estructura}", use_container_width=True)
@@ -118,35 +108,36 @@ elif menu == "✂️ Segmentar imagen":
 
 # Exportar STL
 elif menu == "📆 Exportar STL":
+    st.subheader("Exportar Segmentación")
+
+    materiales = {
+        "PLA": "Fácil, barato, biodegradable 🧠 📘",
+        "ABS": "Resistente y duradero 🔧🦴",
+        "PETG": "Transparente, fuerte, estable ⚗️🩻",
+        "Resina estándar": "Alta precisión 🦷✏️",
+        "Resina biocompatible": "Contacto médico aprobado 🧬🩹",
+        "Nylon": "Flexible y fuerte 🧵💪",
+        "TPU": "Elástico y blando ❤️🔄",
+        "PVA": "Soporte soluble 💧🌱",
+        "PEEK": "Alta resistencia 🟣🔒"
+    }
+
+    selected = st.sidebar.selectbox("Selecciona el material de impresión 3D", list(materiales.keys()))
+    st.markdown(f"🔍 **Material seleccionado:** {selected} - {materiales[selected]}")
+
     if st.session_state.segmented is not None:
         st.subheader("Exportar Segmentación")
-
-        st.sidebar.subheader("Selecciona el material de impresión 3D")
-        material = st.sidebar.selectbox("Material:", [
-            "PLA - Fácil, barato, biodegradable 🧠 📘",
-            "ABS - Resistente y duradero 🔧🦴",
-            "PETG - Transparente, fuerte, estable 🩻🧬",
-            "Resina estándar - Alta precisión 🦷✏️",
-            "Resina biocompatible - Aprobada médicamente 💧🔷",
-            "Nylon - Flexible y resistente 🦴💪",
-            "TPU - Elástico y blando ❤️🧪",
-            "PVA - Soluble en agua 💧🧽",
-            "PEEK - Alta resistencia y biocompatible 🧱🔒"
-        ])
-
-        st.markdown(f"**🔍 Material seleccionado:** {material}")
-
         vol = np.stack([st.session_state.segmented]*5, axis=0)
         verts, faces, _, _ = measure.marching_cubes(vol, level=0)
         malla = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
         for i, f in enumerate(faces):
             for j in range(3):
                 malla.vectors[i][j] = verts[f[j], :]
-
         with tempfile.NamedTemporaryFile(delete=False, suffix=".stl") as tmp_file:
+            filename = f"segmentacion_{selected}.stl".replace(" ", "_")
             malla.save(tmp_file.name)
             with open(tmp_file.name, "rb") as file:
-                st.download_button("📅 Descargar STL", file, file_name="segmentacion.stl")
+                st.download_button("📥 Descargar STL", file, file_name=filename)
         st.success("✅ STL exportado.")
     else:
-        st.warning("⚠️ Primero segmenta una imagen.")
+        st.warning("⚠️ Primero segmenta una imagen antes de exportar el STL.")
